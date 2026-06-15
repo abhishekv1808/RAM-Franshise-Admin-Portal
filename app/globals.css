@@ -9,6 +9,10 @@
  *   Navy   #1B3A6B  — primary
  *   Gold   #C9A84C  — accent
  * Base neutral: slate (shadcn)
+ *
+ * DESIGN SYSTEM — "Subtle Depth" aesthetic
+ * Ref: Stripe + Linear + Vercel dashboards
+ * Soft layered shadows, generous rounding, gentle motion.
  */
 
 :root {
@@ -18,8 +22,33 @@
   --brand-navy: #1b3a6b;
   --brand-gold: #c9a84c;
 
+  /* ─── Shadow scale (layered, subtle depth) ─── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 12px 36px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-2xl: 0 20px 48px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.06);
+
+  /* ─── Radius scale ─── */
+  --radius-card: 14px;
+  --radius-button: 9px;
+  --radius-input: 9px;
+  --radius-badge: 999px;
+  --radius-icon: 10px;
+  --radius-dropdown: 12px;
+
+  /* ─── Transition standards ─── */
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ─── Surface tints ─── */
+  --surface-hover: rgba(0, 0, 0, 0.015);
+  --surface-active: rgba(0, 0, 0, 0.03);
+
   /* shadcn slate base (light) */
-  --background: oklch(1 0 0);
+  --background: oklch(0.985 0.002 247);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
@@ -130,4 +159,37 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM — Reusable utility classes
+   ═══════════════════════════════════════════════ */
+
+/* Shimmer animation for premium skeleton loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.07) 50%,
+    rgba(0, 0, 0, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Recharts tooltip override — branded, polished */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  border-radius: var(--radius-dropdown) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-size: 12px !important;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.97) !important;
 }

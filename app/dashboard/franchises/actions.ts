@@ -8,8 +8,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   createFranchiseSchema,
+  updateFranchiseSchema,
   type CreateFranchiseInput,
   type CreateFranchiseResult,
+  type UpdateFranchiseInput,
+  type UpdateFranchiseResult,
+  type ResendInviteResult,
+  type FranchiseStatus,
+  type SetStatusResult,
 } from "./schema";
 
 async function getOrigin() {
@@ -134,14 +140,116 @@ export async function createFranchise(
   return { ok: true, franchiseId: franchiseId as string, inviteSent, inviteWarning };
 }
 
+// Verify the caller is a logged-in super_admin. Returns the actor or an error.
+async function requireSuperAdmin() {
+  const ssr = await createClient();
+  const {
+    data: { user: actor },
+  } = await ssr.auth.getUser();
+  if (!actor) return { ssr, actor: null, error: "Your session expired. Please sign in again." };
+  const { data: me } = await ssr.from("profiles").select("role").eq("id", actor.id).single();
+  if (me?.role !== "super_admin") {
+    return { ssr, actor: null, error: "Only a super admin can perform this action." };
+  }
+  return { ssr, actor, error: null as string | null };
+}
+
+export async function updateFranchise(
+  input: UpdateFranchiseInput
+): Promise<UpdateFranchiseResult> {
+  const parsed = updateFranchiseSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const data = parsed.data;
+
+  const { actor, error: authErr } = await requireSuperAdmin();
+  if (!actor) return { ok: false, error: authErr ?? "Not authorized." };
+
+  // Atomic update + overlap re-check + audit log (RPC, service-role only).
+  const admin = createAdminClient();
+  const { error: rpcErr } = await admin.rpc("update_franchise", {
+    p_actor_id: actor.id,
+    p_franchise: data.id,
+    p_name: data.name,
+    p_city: data.city,
+    p_pincodes: data.pincodes,
+    p_commission: data.commission,
+    p_email: data.contactEmail ?? "",
+    p_phone: data.contactPhone ?? "",
+  });
+  if (rpcErr) {
+    return {
+      ok: false,
+      error: mapDbError(rpcErr.message),
+      field: rpcErr.message.includes("PINCODE_OVERLAP:") ? "pincodes" : undefined,
+    };
+  }
+
+  revalidatePath("/dashboard/franchises");
+  revalidatePath(`/dashboard/franchises/${data.id}`);
+  return { ok: true, franchiseId: data.id };
+}
+
+// Re-send the password-setup email to a franchise's admin.
+export async function resendInvite(franchiseId: string): Promise<ResendInviteResult> {
+  const { ssr, actor, error: authErr } = await requireSuperAdmin();
+  if (!actor) return { ok: false, error: authErr ?? "Not authorized." };
+
+  const admin = createAdminClient();
+  const { data: adminProfile } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("franchise_id", franchiseId)
+    .eq("role", "franchise_admin")
+    .maybeSingle();
+
+  const email = adminProfile?.email;
+  if (!email) return { ok: false, error: "This franchise has no admin account to invite." };
+
+  const redirectTo = `${await getOrigin()}/auth/callback?next=/set-password`;
+  const { error } = await ssr.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+// Suspend or reactivate a franchise. Suspension is enforced in middleware;
+// data is never deleted. HQ is protected by the RPC.
+export async function setFranchiseStatus(
+  franchiseId: string,
+  status: FranchiseStatus
+): Promise<SetStatusResult> {
+  const { actor, error: authErr } = await requireSuperAdmin();
+  if (!actor) return { ok: false, error: authErr ?? "Not authorized." };
+
+  const admin = createAdminClient();
+  const { error: rpcErr } = await admin.rpc("set_franchise_status", {
+    p_actor_id: actor.id,
+    p_franchise: franchiseId,
+    p_status: status,
+  });
+  if (rpcErr) return { ok: false, error: mapDbError(rpcErr.message) };
+
+  revalidatePath("/dashboard/franchises");
+  revalidatePath(`/dashboard/franchises/${franchiseId}`);
+  return { ok: true, status };
+}
+
 // Translate raised Postgres exceptions into clean, user-facing messages.
 function mapDbError(message: string): string {
   if (message.includes("CODE_TAKEN:")) return message.split("CODE_TAKEN:")[1].trim();
   if (message.includes("PINCODE_OVERLAP:")) return message.split("PINCODE_OVERLAP:")[1].trim();
+  if (message.includes("HQ_PROTECTED:")) {
+    return "Head Office can't be suspended — it's the system's unassigned-lead pool.";
+  }
+  if (message.includes("BAD_STATUS:")) return "Invalid franchise status.";
+  if (message.includes("NOT_FOUND:")) {
+    return "That franchise no longer exists — it may have been removed.";
+  }
   if (message.includes("PROFILE_MISSING:")) {
     return "The admin account couldn't be linked to the franchise. Nothing was saved — please try again.";
   }
-  return `Couldn't create the franchise: ${message}`;
+  return `Couldn't save the franchise: ${message}`;
 }
 
 function dbErrorField(message: string): keyof CreateFranchiseInput | undefined {

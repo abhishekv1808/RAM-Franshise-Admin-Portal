@@ -35,7 +35,11 @@ function LoginForm() {
   const initialError =
     queryError === "no-access"
       ? "This account doesn't have admin access. Contact the super admin."
-      : null;
+      : queryError === "invite-invalid"
+        ? "That invite link is invalid or has expired. Ask the super admin to resend it."
+        : queryError === "suspended"
+          ? "Your franchise access has been suspended. Contact head office."
+          : null;
 
   const {
     register,

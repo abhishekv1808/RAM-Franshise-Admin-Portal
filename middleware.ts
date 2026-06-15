@@ -30,18 +30,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 2. Authenticated -> resolve role from profiles.
-  //    (profiles.role is added in the Step 2 migration; until then this is null.)
+  // 2. Authenticated -> resolve role from profiles, plus (for franchise admins)
+  //    their franchise's status so suspension can be enforced HERE, not just in
+  //    the DB. Suspension never deletes data — it gates access at this layer.
   let role: string | null = null;
+  let franchiseStatus: string | null = null;
   try {
     const { data } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, franchise_id")
       .eq("id", user.id)
       .single();
     role = (data?.role as string | undefined) ?? null;
+    const franchiseId = data?.franchise_id as string | undefined;
+    if (role === "franchise_admin" && franchiseId) {
+      const { data: fr } = await supabase
+        .from("franchises")
+        .select("status")
+        .eq("id", franchiseId)
+        .single();
+      franchiseStatus = (fr?.status as string | undefined) ?? null;
+    }
   } catch {
     role = null;
+  }
+
+  // 2a. SUSPENSION GATE — a franchise_admin whose franchise is suspended is
+  //     blocked from everything except the login page (where they see why).
+  //     Reactivation flips status back to 'active' and access resumes next request.
+  if (role === "franchise_admin" && franchiseStatus === "suspended") {
+    if (pathname === "/login") return supabaseResponse; // show message, no redirect loop
+    const url = request.nextUrl.clone();
+    url.search = "";
+    url.pathname = "/login";
+    url.searchParams.set("error", "suspended");
+    return NextResponse.redirect(url);
   }
 
   const home = roleHome(role);

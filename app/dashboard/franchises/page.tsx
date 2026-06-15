@@ -3,6 +3,7 @@ import { Plus, AlertCircle } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { FranchisesTable, type FranchiseRow } from "@/components/dashboard/FranchisesTable";
 
 export const dynamic = "force-dynamic";
@@ -34,23 +35,16 @@ export default async function FranchisesPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-8">
-      {/* Header */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-brand-navy">
-            Franchises
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {franchises.length} {franchises.length === 1 ? "franchise" : "franchises"} · manage territories, admins, and status
-          </p>
-        </div>
+      <PageHeader
+        description={`${franchises.length} ${franchises.length === 1 ? "franchise" : "franchises"} · manage territories, admins, and status`}
+      >
         <Button asChild className="bg-brand-navy hover:bg-brand-navy/90">
           <Link href="/dashboard/franchises/new">
             <Plus className="h-4 w-4" />
             Add Franchise
           </Link>
         </Button>
-      </div>
+      </PageHeader>
 
       {error ? (
         <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
