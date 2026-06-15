@@ -49,10 +49,12 @@ export function SettlementPanel({ franchises }: { franchises: Franchise[] }) {
   }
 
   return (
-    <div className="rounded-[10px] border border-border bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Wallet className="h-4 w-4 text-brand-gold" />
-        <h2 className="text-base font-semibold text-brand-navy">Settlement Statement</h2>
+    <div className="rounded-2xl border border-border/40 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-gold/15 to-brand-gold/[0.04] text-brand-gold ring-1 ring-brand-gold/[0.08]">
+          <Wallet className="h-[18px] w-[18px]" />
+        </span>
+        <h2 className="font-heading text-base font-bold text-brand-navy">Settlement Statement</h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Generate a branded statement for a franchise and month, then record the settlement.

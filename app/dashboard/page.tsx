@@ -1,25 +1,16 @@
 import Link from "next/link";
-import { Users, Building2, IndianRupee, Coins, BarChart3, ArrowRight, ArrowUpRight, TrendingUp } from "lucide-react";
+import { Users, Building2, IndianRupee, Coins, BarChart3, ArrowRight, TrendingUp } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { formatINR } from "@/lib/format";
 import { StatCard } from "@/components/ui/stat-card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { LeadsOverTimeChart } from "@/components/dashboard/LeadsOverTimeChart";
 import { ConversionPanel } from "@/components/dashboard/ConversionPanel";
+import { HighlightCard } from "@/components/dashboard/HighlightCard";
+import { FranchiseTable } from "@/components/dashboard/FranchiseTable";
 import { ActivityFeed, type ActivityRow } from "@/components/dashboard/ActivityFeed";
 import { LEAD_STATUSES } from "@/app/dashboard/leads/schema";
 import { periodRange, buildSeries } from "@/lib/dashboard";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +84,11 @@ export default async function DashboardPage({
     const own = leads.filter((l) => l.franchise_id === f.id);
     const ownClosed = own.filter((l) => CLOSED.has(l.work_status)).length;
     return {
-      ...f,
+      id: f.id,
+      name: f.name,
+      code: f.code,
+      city: f.city,
+      status: f.status,
       total: own.length,
       conversion: own.length ? Math.round((ownClosed / own.length) * 100) : 0,
     };
@@ -106,6 +101,8 @@ export default async function DashboardPage({
     created_at: a.created_at,
     franchise_code: (a.franchises as unknown as { code: string } | null)?.code ?? null,
   }));
+
+  const leadsGrowth = total > 0 ? Math.round((leadsThisMonth / total) * 100) : 0;
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-6 py-7 lg:px-8">
@@ -146,21 +143,21 @@ export default async function DashboardPage({
 
       {/* ═══════════ Chart + Conversion Rate (2-column) ═══════════ */}
       <div className="mt-6 grid gap-4 lg:grid-cols-3 lg:gap-5">
-        {/* Leads Over Time — large chart area */}
-        <div className="lg:col-span-2 overflow-hidden rounded-2xl border border-border/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        {/* Overall Leads — large chart area */}
+        <div className="overflow-hidden rounded-2xl border border-border/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border/30 px-6 py-4">
             <div>
               <p className="font-heading text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
                 Overall Leads
               </p>
               <div className="mt-1.5 flex items-end gap-2.5">
-                <span className="font-heading text-3xl font-extrabold tracking-tight text-foreground leading-none">
+                <span className="font-heading text-3xl font-extrabold leading-none tracking-tight text-foreground">
                   {total.toLocaleString("en-IN")}
                 </span>
                 {leadsThisMonth > 0 && (
                   <span className="mb-0.5 inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
                     <TrendingUp className="h-3 w-3" />
-                    {Math.round((leadsThisMonth / Math.max(total, 1)) * 100)}%
+                    {leadsGrowth}%
                   </span>
                 )}
               </div>
@@ -176,7 +173,7 @@ export default async function DashboardPage({
 
         {/* Conversion Rate / Pipeline Panel */}
         <div className="overflow-hidden rounded-2xl border border-border/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="px-6 pt-6 pb-5">
+          <div className="px-6 pb-5 pt-6">
             <ConversionPanel
               conversion={conversion}
               closedCount={closedCount}
@@ -187,119 +184,41 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* ═══════════ Bottom Row: Activity + Franchise Performance (2-column) ═══════════ */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-2 lg:gap-5">
-        {/* Recent Activity card */}
-        <div className="overflow-hidden rounded-2xl border border-border/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between border-b border-border/30 px-6 py-4">
-            <div>
-              <p className="font-heading text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
-                Recent Activity
-              </p>
-              <p className="font-heading mt-1 text-base font-bold text-foreground">
-                Latest Updates
-              </p>
-            </div>
-            <Link
-              href="/dashboard/activity"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-white px-3 py-1.5 text-[12px] font-semibold text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:border-border hover:text-foreground hover:shadow-sm"
-            >
-              View All
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="px-6 py-4">
-            <ActivityFeed rows={activity} />
-          </div>
+      {/* ═══════════ Highlight CTA + Franchise List (1 : 2) ═══════════ */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-3 lg:gap-5">
+        <div className="lg:col-span-1">
+          <HighlightCard
+            commissionOwed={formatINR(commissionOwed)}
+            conversion={conversion}
+            activeFranchises={activeFr.length}
+          />
         </div>
+        <div className="lg:col-span-2">
+          <FranchiseTable rows={perf} />
+        </div>
+      </div>
 
-        {/* Franchise Performance table */}
-        <div className="overflow-hidden rounded-2xl border border-border/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between border-b border-border/30 px-6 py-4">
-            <div>
-              <p className="font-heading text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
-                Franchise List
-              </p>
-              <div className="mt-1 flex items-end gap-2">
-                <span className="font-heading text-2xl font-extrabold text-foreground leading-none">
-                  {(franchises ?? []).length}
-                </span>
-                <span className="mb-0.5 text-[12px] text-muted-foreground/60 font-medium">franchises</span>
-              </div>
-            </div>
-            <Link
-              href="/dashboard/franchises"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-white px-3 py-1.5 text-[12px] font-semibold text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:border-border hover:text-foreground hover:shadow-sm"
-            >
-              View All
-              <ArrowRight className="h-3 w-3" />
-            </Link>
+      {/* ═══════════ Recent Activity (full width) ═══════════ */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center justify-between border-b border-border/30 px-6 py-4">
+          <div>
+            <p className="font-heading text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
+              Recent Activity
+            </p>
+            <p className="font-heading mt-1 text-base font-bold text-foreground">
+              Latest Updates
+            </p>
           </div>
-          <div className="px-1">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-border/20">
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60 pl-5">Franchise</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60">City</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60 text-right">Leads</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60 text-right">Conv.</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60 pr-5">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {perf.slice(0, 5).map((f) => (
-                  <TableRow key={f.id} className="border-b border-border/10 transition-colors hover:bg-muted/20">
-                    <TableCell className="pl-5">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-navy/10 to-brand-navy/[0.03] text-[11px] font-bold text-brand-navy ring-1 ring-brand-navy/[0.06]">
-                          {f.name?.charAt(0) ?? "F"}
-                        </span>
-                        <div className="min-w-0">
-                          <span className="block truncate text-[13px] font-semibold text-foreground">{f.name}</span>
-                          <span className="block text-[10px] font-mono text-muted-foreground/50 tracking-wide">{f.code}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-[13px]">{f.city ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums text-[13px] font-semibold">{f.total}</TableCell>
-                    <TableCell className="text-right">
-                      <span className={cn(
-                        "inline-flex items-center gap-1 tabular-nums text-[13px] font-medium",
-                        f.conversion > 30 ? "text-emerald-600" : f.conversion > 0 ? "text-amber-600" : "text-muted-foreground/50"
-                      )}>
-                        {f.conversion > 0 && <ArrowUpRight className="h-3 w-3" />}
-                        {f.conversion}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="pr-5">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border-transparent capitalize text-[11px] font-semibold px-2.5 py-0.5",
-                          f.status === "active"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-700"
-                        )}
-                      >
-                        {f.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {(franchises ?? []).length > 5 && (
-              <div className="flex justify-center border-t border-border/20 py-3">
-                <Link
-                  href="/dashboard/franchises"
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground/60 transition-colors hover:text-brand-navy"
-                >
-                  Show all {(franchises ?? []).length} franchises
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-            )}
-          </div>
+          <Link
+            href="/dashboard/activity"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-white px-3 py-1.5 text-[12px] font-semibold text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:border-border hover:text-foreground hover:shadow-sm"
+          >
+            View All
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="px-6 py-4">
+          <ActivityFeed rows={activity} />
         </div>
       </div>
     </div>

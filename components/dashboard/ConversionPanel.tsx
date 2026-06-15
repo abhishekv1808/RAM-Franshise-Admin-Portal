@@ -1,23 +1,24 @@
 "use client";
 
+import { BarChart3 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 export type StageDatum = { key: string; label: string; count: number };
 
-const STAGE_COLORS: Record<string, { bar: string; dot: string; bg: string }> = {
-  new: { bar: "bg-blue-500", dot: "bg-blue-500", bg: "bg-blue-500/10" },
-  contacted: { bar: "bg-indigo-500", dot: "bg-indigo-500", bg: "bg-indigo-500/10" },
-  documents_pending: { bar: "bg-amber-500", dot: "bg-amber-500", bg: "bg-amber-500/10" },
-  in_progress: { bar: "bg-orange-500", dot: "bg-orange-500", bg: "bg-orange-500/10" },
-  completed: { bar: "bg-emerald-500", dot: "bg-emerald-500", bg: "bg-emerald-500/10" },
-  closed: { bar: "bg-slate-400", dot: "bg-slate-400", bg: "bg-slate-400/10" },
+const STAGE_DOT: Record<string, string> = {
+  new: "bg-blue-500",
+  contacted: "bg-indigo-500",
+  documents_pending: "bg-amber-500",
+  in_progress: "bg-orange-500",
+  completed: "bg-emerald-500",
+  closed: "bg-slate-400",
 };
 
-const DEFAULT_COLOR = { bar: "bg-brand-navy", dot: "bg-brand-navy", bg: "bg-brand-navy/10" };
-
 /**
- * Conversion Rate Panel — premium with colored progress bars per stage,
- * circular progress indicator for overall conversion, and visual hierarchy.
+ * Conversion Rate panel — funnel-style breakdown matching the reference:
+ * header with the headline rate, then one row per pipeline stage showing the
+ * stage label, its share of total leads, and the absolute count.
  */
 export function ConversionPanel({
   conversion,
@@ -30,26 +31,22 @@ export function ConversionPanel({
   total: number;
   stageData: StageDatum[];
 }) {
-  const max = Math.max(1, ...stageData.map((d) => d.count));
-
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="mb-5 flex items-start justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <p className="font-heading text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
             Conversion Rate
           </p>
-          <div className="mt-3 flex items-end gap-3">
-            {/* Big number */}
-            <span className="font-heading text-4xl font-extrabold tracking-tight text-foreground leading-none">
+          <div className="mt-2.5 flex items-end gap-2.5">
+            <span className="font-heading text-3xl font-extrabold tracking-tight text-foreground leading-none">
               {conversion}%
             </span>
-            {/* Badge */}
             <span
               className={cn(
-                "mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold",
-                conversion > 0 ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                "mb-0.5 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold",
+                conversion > 0 ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500",
               )}
             >
               <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
@@ -59,59 +56,35 @@ export function ConversionPanel({
             </span>
           </div>
         </div>
-        {/* Mini circular indicator */}
-        <div className="relative h-12 w-12 shrink-0">
-          <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3" className="text-border/40" />
-            <circle
-              cx="24" cy="24" r="20" fill="none"
-              stroke="currentColor" strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={`${(conversion / 100) * 125.6} 125.6`}
-              className="text-brand-navy transition-all duration-700 ease-out"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-brand-navy tabular-nums">
-            {conversion}%
-          </span>
-        </div>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-navy/10 to-brand-navy/[0.03] text-brand-navy ring-1 ring-brand-navy/[0.06]">
+          <BarChart3 className="h-[18px] w-[18px]" />
+        </span>
       </div>
 
-      {/* Pipeline stages with colored bars */}
-      <div className="flex flex-1 flex-col">
+      {/* Funnel rows */}
+      <div className="mt-5 flex flex-1 flex-col">
         {stageData.map((stage, i) => {
-          const pct = total > 0 ? Math.round((stage.count / total) * 100) : 0;
-          const barPct = max > 0 ? (stage.count / max) * 100 : 0;
-          const colors = STAGE_COLORS[stage.key] ?? DEFAULT_COLOR;
+          const pct = total > 0 ? (stage.count / total) * 100 : 0;
+          const pctLabel = pct >= 10 || pct === 0 ? Math.round(pct) : pct.toFixed(1);
 
           return (
             <div
               key={stage.key}
               className={cn(
-                "group/stage py-3 transition-colors duration-150 hover:bg-muted/20 -mx-2 px-2 rounded-lg",
-                i < stageData.length - 1 && "border-b border-border/20"
+                "flex items-center justify-between py-3.5",
+                i < stageData.length - 1 && "border-b border-border/25",
               )}
             >
-              {/* Label row */}
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className={cn("h-2 w-2 rounded-full shrink-0", colors.dot)} />
-                  <span className="font-heading text-[13px] font-semibold text-foreground">{stage.label}</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[11px] text-muted-foreground/60 tabular-nums">{pct}%</span>
-                  <span className="text-[15px] font-bold tabular-nums text-foreground min-w-[28px] text-right">
-                    {stage.count}
-                  </span>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className={cn("h-2 w-2 shrink-0 rounded-full", STAGE_DOT[stage.key] ?? "bg-brand-navy")} />
+                <div className="min-w-0">
+                  <p className="font-heading truncate text-[13px] font-semibold text-foreground">{stage.label}</p>
+                  <p className="text-[11px] text-muted-foreground/60 tabular-nums">{pctLabel}%</p>
                 </div>
               </div>
-              {/* Progress bar */}
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
-                <div
-                  className={cn("h-full rounded-full transition-all duration-500 ease-out", colors.bar)}
-                  style={{ width: `${barPct}%` }}
-                />
-              </div>
+              <span className="font-heading text-[15px] font-bold tabular-nums text-foreground">
+                {stage.count.toLocaleString("en-IN")}
+              </span>
             </div>
           );
         })}

@@ -1,18 +1,11 @@
-import { IndianRupee, Percent, Wallet, Coins } from "lucide-react";
+import { IndianRupee, Percent, Wallet, Coins, BarChart3, PieChart, TrendingUp, Building2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { reportRange, revenueSeries } from "@/lib/reports";
 import { buildSeries } from "@/lib/dashboard";
 import { LEAD_STATUSES } from "@/app/dashboard/leads/schema";
 import { formatINR } from "@/lib/format";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,6 +18,7 @@ import { ReportsDateRange } from "@/components/dashboard/ReportsDateRange";
 import { SettlementPanel } from "@/components/dashboard/SettlementPanel";
 import { FranchisePerformanceTable, type PerfRow } from "@/components/dashboard/FranchisePerformanceTable";
 import { LeadsOverTimeChart } from "@/components/dashboard/LeadsOverTimeChart";
+import { ReportPanel, SectionHeading } from "@/components/dashboard/ReportPanel";
 import {
   RevenueByFranchiseBar,
   LeadsBySourceDonut,
@@ -122,111 +116,87 @@ export default async function ReportsPage({
   const revPoints = paysIn.map((p) => ({ date: new Date(p.paid_at), amount: sign(p.kind) * Number(p.amount) }));
   const revTrend = revenueSeries(range.start, range.end, revPoints);
 
+  const totalLeadsIn = leadsIn.length;
+
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
-      <PageHeader description={`Performance, leads, and revenue for ${range.label}.`}>
+    <div className="mx-auto w-full max-w-[1400px] px-6 py-7 lg:px-8">
+      {/* ── Header ── */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-xl font-bold tracking-tight text-brand-navy">Reports</h2>
+          <p className="mt-1 text-sm text-muted-foreground/70">
+            Performance, leads, and revenue for <span className="font-medium text-foreground/80">{range.label}</span>.
+          </p>
+        </div>
         <ReportsDateRange current={{ period: range.period, from: range.from, to: range.to }} />
-      </PageHeader>
-
-      {/* Settlement statement generator */}
-      <div className="mb-8">
-        <SettlementPanel franchises={(franchises ?? []).filter((f) => f.code !== "HQ")} />
       </div>
 
-      {/* A — Franchise Performance */}
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Franchise Performance
-      </h2>
-      <Card>
-        <CardContent className="pt-6">
-          <FranchisePerformanceTable rows={perf} />
-        </CardContent>
-      </Card>
-      <Card className="mt-5">
-        <CardHeader>
-          <CardTitle className="text-base text-brand-navy">Revenue by Franchise</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RevenueByFranchiseBar data={revenueByFr} />
-        </CardContent>
-      </Card>
-
-      {/* B — Lead Analytics */}
-      <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Lead Analytics
-      </h2>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">Leads by Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LeadsBySourceDonut data={bySource} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">Lead Status Funnel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LeadStatusFunnel data={byStatus} />
-          </CardContent>
-        </Card>
+      {/* ═══════════ Headline KPIs ═══════════ */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
+        <StatCard label="Revenue" value={formatINR(totalRevenue)} icon={IndianRupee} color="emerald" changeText={range.label} />
+        <StatCard label="Commission Earned" value={formatINR(totalCommEarned)} icon={Percent} color="navy" changeText="On verified payments" />
+        <StatCard label="Settled (period)" value={formatINR(settledInPeriod)} icon={Wallet} color="violet" changeText="Paid out this period" />
+        <StatCard label="Commission Owed" value={formatINR(totalOwed)} icon={Coins} color="gold" changeText="Current outstanding" />
       </div>
-      <Card className="mt-5">
-        <CardHeader>
-          <CardTitle className="text-base text-brand-navy">Leads Over Time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LeadsOverTimeChart data={leadsSeries} />
-        </CardContent>
-      </Card>
 
-      {/* C — Revenue & Commission */}
-      <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Revenue &amp; Commission
-      </h2>
-      <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
-        <StatCard label="Revenue" value={formatINR(totalRevenue)} icon={IndianRupee} subtext={range.label} />
-        <StatCard label="Commission Earned" value={formatINR(totalCommEarned)} icon={Percent} subtext="On verified payments" />
-        <StatCard label="Settled (period)" value={formatINR(settledInPeriod)} icon={Wallet} subtext="Paid out this period" />
-        <StatCard label="Commission Owed" value={formatINR(totalOwed)} icon={Coins} subtext="Current outstanding" />
-      </div>
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">Revenue Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RevenueTrend data={revTrend} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">Commission by Franchise</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Franchise</TableHead>
-                  <TableHead className="text-right">Earned</TableHead>
-                  <TableHead className="text-right">Owed</TableHead>
+      {/* ═══════════ Revenue & Commission ═══════════ */}
+      <SectionHeading>Revenue &amp; Commission</SectionHeading>
+      <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+        <ReportPanel title="Revenue Trend" subtitle={range.label} icon={TrendingUp} className="lg:col-span-2">
+          <RevenueTrend data={revTrend} />
+        </ReportPanel>
+        <ReportPanel title="Commission by Franchise" icon={Coins} bodyClassName="px-1 py-2">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border/20 hover:bg-transparent">
+                <TableHead className="pl-5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60">Franchise</TableHead>
+                <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60">Earned</TableHead>
+                <TableHead className="pr-5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60">Owed</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {perf.map((p) => (
+                <TableRow key={p.code} className="border-b border-border/10 transition-colors hover:bg-muted/20">
+                  <TableCell className="pl-5 font-mono text-xs text-muted-foreground">{p.code}</TableCell>
+                  <TableCell className="text-right tabular-nums text-[13px]">{formatINR(p.commissionEarned)}</TableCell>
+                  <TableCell className="pr-5 text-right text-[13px] tabular-nums font-semibold text-brand-navy">{formatINR(p.owed)}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {perf.map((p) => (
-                  <TableRow key={p.code}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{p.code}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatINR(p.commissionEarned)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatINR(p.owed)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </ReportPanel>
       </div>
+
+      {/* ═══════════ Franchise Performance ═══════════ */}
+      <SectionHeading>Franchise Performance</SectionHeading>
+      <div className="grid gap-4 lg:gap-5">
+        <ReportPanel title="Performance by Franchise" icon={Building2} bodyClassName="px-1 py-2">
+          <FranchisePerformanceTable rows={perf} />
+        </ReportPanel>
+        <ReportPanel title="Revenue by Franchise" subtitle={range.label} icon={BarChart3}>
+          <RevenueByFranchiseBar data={revenueByFr} />
+        </ReportPanel>
+      </div>
+
+      {/* ═══════════ Lead Analytics ═══════════ */}
+      <SectionHeading>Lead Analytics</SectionHeading>
+      <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+        <ReportPanel title="Leads by Source" subtitle={`${totalLeadsIn} leads in period`} icon={PieChart}>
+          <LeadsBySourceDonut data={bySource} />
+        </ReportPanel>
+        <ReportPanel title="Lead Status Funnel" icon={BarChart3}>
+          <LeadStatusFunnel data={byStatus} />
+        </ReportPanel>
+      </div>
+      <div className="mt-4 lg:mt-5">
+        <ReportPanel title="Leads Over Time" subtitle={range.label} icon={TrendingUp}>
+          <LeadsOverTimeChart data={leadsSeries} />
+        </ReportPanel>
+      </div>
+
+      {/* ═══════════ Settlement tool ═══════════ */}
+      <SectionHeading>Settlement</SectionHeading>
+      <SettlementPanel franchises={(franchises ?? []).filter((f) => f.code !== "HQ")} />
     </div>
   );
 }

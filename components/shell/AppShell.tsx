@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, type ElementType } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -326,12 +327,29 @@ export function AppShell({
           )}
         >
           <Link href={homeHref} className="flex items-center gap-2.5 min-w-0">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-gold text-sm font-bold text-brand-navy shadow-[0_2px_8px_rgba(201,168,76,0.3)]">
-              R
+            <span
+              className={cn(
+                "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.25)] ring-1 ring-white/10",
+                isMini ? "h-10 w-10" : "h-9 w-9",
+              )}
+            >
+              <Image
+                src="/images/logo.png"
+                alt="Right Assets Management"
+                width={40}
+                height={40}
+                priority
+                className="h-full w-full object-contain p-[3px]"
+              />
             </span>
             {!isMini && (
-              <span className="font-heading text-base font-bold tracking-tight whitespace-nowrap">
-                RAM<span className="text-brand-gold">Admin</span>
+              <span className="flex flex-col leading-none">
+                <span className="font-heading text-base font-bold tracking-tight whitespace-nowrap">
+                  RAM<span className="text-brand-gold"> Admin</span>
+                </span>
+                <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35 whitespace-nowrap">
+                  Right Assets Mgmt
+                </span>
               </span>
             )}
           </Link>
@@ -484,23 +502,31 @@ export function AppShell({
               )}
             </div>
 
-            {/* ── Header Search Bar ── */}
-            <div className="mx-6 hidden md:flex flex-1 max-w-sm">
-              <label className="flex w-full items-center gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-2 transition-all duration-200 focus-within:bg-white focus-within:border-brand-navy/20 focus-within:shadow-[0_0_0_3px_rgba(27,58,107,0.06)]">
+            {/* ── Header search bar ── */}
+            <div className="ml-4 hidden flex-1 md:flex lg:ml-8">
+              <label className="flex w-full max-w-md items-center gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-2 transition-all duration-200 focus-within:border-brand-navy/20 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(27,58,107,0.06)]">
                 <Search className="h-4 w-4 shrink-0 text-muted-foreground/50" />
                 <input
                   type="text"
-                  placeholder="Search here..."
+                  placeholder="Search"
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
                 />
+                <kbd className="hidden shrink-0 rounded-md border border-border/60 bg-white px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/50 lg:block">
+                  ⌘F
+                </kbd>
               </label>
             </div>
 
             {/* Right actions */}
             <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
               {/* Mobile search */}
-              <button className="md:hidden rounded-lg p-2 text-muted-foreground transition-colors duration-150 hover:bg-muted/60 hover:text-foreground">
+              <button className="rounded-lg p-2 text-muted-foreground transition-colors duration-150 hover:bg-muted/60 hover:text-foreground md:hidden">
                 <Search className="h-[18px] w-[18px]" />
+              </button>
+
+              {/* Help / info */}
+              <button className="hidden rounded-lg p-2 text-muted-foreground transition-all duration-150 hover:bg-muted/60 hover:text-foreground sm:inline-flex">
+                <HelpCircle className="h-[18px] w-[18px]" />
               </button>
 
               {showPeriod && (

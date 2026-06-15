@@ -2,28 +2,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-8">
-      <div className="mb-6 flex items-end justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <Skeleton className="h-9 w-36" />
+    <div className="mx-auto w-full max-w-[1400px] px-6 py-7 lg:px-8">
+      <div className="mb-6 space-y-2">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-4 w-80" />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="border-b border-border bg-muted/40 px-4 py-3">
-          <Skeleton className="h-4 w-full max-w-3xl" />
-        </div>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-4 py-4">
+          <Skeleton key={i} className="h-[132px] rounded-2xl" />
+        ))}
+      </div>
+
+      {/* Table card */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-white">
+        <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
+          <Skeleton className="h-9 w-56 rounded-xl" />
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="h-9 w-64 rounded-xl" />
+            <Skeleton className="h-9 w-36 rounded-xl" />
+          </div>
+        </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-5 py-4">
+            <Skeleton className="h-9 w-9 rounded-lg" />
             <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
             <Skeleton className="h-5 w-16 rounded-full" />
             <Skeleton className="ml-auto h-4 w-10" />
             <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-8" />
             <Skeleton className="h-4 w-20" />
           </div>
         ))}
