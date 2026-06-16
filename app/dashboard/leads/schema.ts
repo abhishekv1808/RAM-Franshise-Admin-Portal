@@ -22,8 +22,10 @@ export type LeadCard = {
   id: string;
   full_name: string;
   phone: string;
+  email: string | null;
   service_interested: string | null;
   source: string | null;
+  pincode: string | null;
   work_status: string;
   created_at: string;
   franchise_id: string | null;

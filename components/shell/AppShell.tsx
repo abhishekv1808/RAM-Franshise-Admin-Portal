@@ -319,38 +319,32 @@ export function AppShell({
           width: mobileOpen ? SIDEBAR_W : (mounted ? sidebarWidth : SIDEBAR_W),
         }}
       >
-        {/* ── Brand header ── */}
+        {/* ── Brand header (white strip so the navy logo reads cleanly) ── */}
         <div
           className={cn(
-            "flex h-[64px] shrink-0 items-center border-b border-white/[0.06]",
-            isMini ? "justify-center px-3" : "justify-between px-5",
+            "relative flex h-[64px] shrink-0 items-center border-b border-black/[0.06] bg-white",
+            isMini ? "justify-center px-2" : "justify-between pl-5 pr-2.5",
           )}
         >
-          <Link href={homeHref} className="flex items-center gap-2.5 min-w-0">
-            <span
-              className={cn(
-                "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.25)] ring-1 ring-white/10",
-                isMini ? "h-10 w-10" : "h-9 w-9",
-              )}
-            >
+          <Link href={homeHref} className="flex min-w-0 items-center" aria-label="Right Assets Management — Home">
+            {isMini ? (
               <Image
                 src="/images/logo.png"
                 alt="Right Assets Management"
                 width={40}
                 height={40}
                 priority
-                className="h-full w-full object-contain p-[3px]"
+                className="h-10 w-10 object-contain"
               />
-            </span>
-            {!isMini && (
-              <span className="flex flex-col leading-none">
-                <span className="font-heading text-base font-bold tracking-tight whitespace-nowrap">
-                  RAM<span className="text-brand-gold"> Admin</span>
-                </span>
-                <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35 whitespace-nowrap">
-                  Right Assets Mgmt
-                </span>
-              </span>
+            ) : (
+              <Image
+                src="/images/Horizontal Logo.png"
+                alt="Right Assets Management"
+                width={440}
+                height={104}
+                priority
+                className="h-9 w-auto object-contain"
+              />
             )}
           </Link>
 
@@ -358,7 +352,7 @@ export function AppShell({
           {!isMini && (
             <button
               onClick={toggleCollapse}
-              className="hidden lg:flex shrink-0 h-8 w-8 items-center justify-center rounded-lg text-white/35 transition-all duration-200 hover:bg-white/[0.08] hover:text-white/70"
+              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-slate-100 hover:text-slate-600 lg:flex"
               title="Collapse sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -367,7 +361,7 @@ export function AppShell({
           {isMini && (
             <button
               onClick={toggleCollapse}
-              className="hidden lg:flex absolute -right-0 top-[18px] h-7 w-7 items-center justify-center rounded-lg text-white/35 transition-all duration-200 hover:bg-white/[0.08] hover:text-white/70"
+              className="absolute right-1 top-2 hidden h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-all duration-200 hover:bg-slate-100 hover:text-slate-600 lg:flex"
               title="Expand sidebar"
             >
               <PanelLeftOpen className="h-3.5 w-3.5" />
@@ -377,7 +371,7 @@ export function AppShell({
           {/* Mobile close */}
           <button
             onClick={closeMobile}
-            className="ml-auto rounded-lg p-1.5 text-white/40 transition-colors duration-150 hover:bg-white/[0.08] hover:text-white/70 lg:hidden"
+            className="ml-auto rounded-lg p-1.5 text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-600 lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -437,17 +431,19 @@ export function AppShell({
         </nav>
 
         {/* ── Profile footer ── */}
-        <div
-          className={cn(
-            "shrink-0 border-t border-white/[0.06]",
-            isMini ? "px-2 py-3" : "px-4 py-3",
-          )}
-        >
-          <div className={cn("flex items-center", isMini ? "justify-center" : "gap-3")}>
+        <div className={cn("shrink-0 border-t border-white/[0.06]", isMini ? "p-2" : "p-3")}>
+          <div
+            className={cn(
+              "flex items-center",
+              isMini
+                ? "justify-center"
+                : "gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5 ring-1 ring-white/[0.05]",
+            )}
+          >
             <span
               className={cn(
-                "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-gold/30 to-brand-gold/10 text-xs font-bold text-brand-gold",
-                isMini ? "h-10 w-10" : "h-9 w-9 ring-2 ring-brand-gold/10",
+                "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-gold/35 to-brand-gold/10 text-xs font-bold text-brand-gold ring-2 ring-brand-gold/15",
+                isMini ? "h-10 w-10" : "h-9 w-9",
               )}
             >
               {initials}
@@ -456,11 +452,11 @@ export function AppShell({
               <>
                 <div className="min-w-0 flex-1">
                   <p className="font-heading truncate text-[13px] font-semibold text-white/90">{displayName}</p>
-                  <p className="truncate text-[11px] text-white/35">{roleLabel}</p>
+                  <p className="truncate text-[11px] text-white/40">{roleLabel}</p>
                 </div>
                 <button
                   onClick={signOut}
-                  className="shrink-0 rounded-lg p-1.5 text-white/30 transition-all duration-150 hover:bg-red-500/10 hover:text-red-400"
+                  className="shrink-0 rounded-lg p-1.5 text-white/40 transition-all duration-150 hover:bg-red-500/15 hover:text-red-400"
                   title="Sign out"
                 >
                   <LogOut className="h-4 w-4" />

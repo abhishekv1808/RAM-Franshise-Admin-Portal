@@ -6,6 +6,7 @@ import "./globals.css";
  * Heading / UI:  Plus Jakarta Sans  — geometric, premium, modern
  * Body / Data:   Inter              — crisp legibility, perfect tabular nums
  */
+
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-heading",
   subsets: ["latin"],
@@ -35,7 +36,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${jakarta.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body suppressHydrationWarning className="min-h-full flex flex-col">
+        {children}
+      </body>
     </html>
   );
 }

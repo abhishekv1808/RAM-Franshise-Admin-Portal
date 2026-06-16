@@ -182,7 +182,10 @@ export async function updateFranchise(
     return {
       ok: false,
       error: mapDbError(rpcErr.message),
-      field: rpcErr.message.includes("PINCODE_OVERLAP:") ? "pincodes" : undefined,
+      field:
+        rpcErr.message.includes("PINCODE_OVERLAP:") || rpcErr.message.includes("PINCODE_CONFLICT:")
+          ? "pincodes"
+          : undefined,
     };
   }
 
@@ -239,6 +242,9 @@ export async function setFranchiseStatus(
 function mapDbError(message: string): string {
   if (message.includes("CODE_TAKEN:")) return message.split("CODE_TAKEN:")[1].trim();
   if (message.includes("PINCODE_OVERLAP:")) return message.split("PINCODE_OVERLAP:")[1].trim();
+  // DB-level uniqueness guard (trg_unique_pincodes) — e.g. claiming a 560xxx code
+  // that still belongs to Head Office. Surface the "remove it there first" hint.
+  if (message.includes("PINCODE_CONFLICT:")) return message.split("PINCODE_CONFLICT:")[1].trim();
   if (message.includes("HQ_PROTECTED:")) {
     return "Head Office can't be suspended — it's the system's unassigned-lead pool.";
   }
@@ -254,6 +260,6 @@ function mapDbError(message: string): string {
 
 function dbErrorField(message: string): keyof CreateFranchiseInput | undefined {
   if (message.includes("CODE_TAKEN:")) return "code";
-  if (message.includes("PINCODE_OVERLAP:")) return "pincodes";
+  if (message.includes("PINCODE_OVERLAP:") || message.includes("PINCODE_CONFLICT:")) return "pincodes";
   return undefined;
 }
