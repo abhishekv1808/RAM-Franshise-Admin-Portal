@@ -4,7 +4,7 @@ import { useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, X, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { createFranchise } from "@/app/dashboard/franchises/actions";
 import {
@@ -19,9 +19,8 @@ export function CreateFranchiseForm() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const [pincodeDraft, setPincodeDraft] = useState("");
-  const [success, setSuccess] = useState<{ inviteSent: boolean; warning?: string } | null>(
-    null
-  );
+  const [showPw, setShowPw] = useState(false);
+  const [success, setSuccess] = useState<{ email: string } | null>(null);
 
   const {
     register,
@@ -41,6 +40,7 @@ export function CreateFranchiseForm() {
       commission: 0,
       adminEmail: "",
       adminName: "",
+      adminPassword: "",
       contactPhone: "",
     },
   });
@@ -65,7 +65,7 @@ export function CreateFranchiseForm() {
     setFormError(null);
     const result = await createFranchise({ ...values, code: values.code.toUpperCase() });
     if (result.ok) {
-      setSuccess({ inviteSent: result.inviteSent, warning: result.inviteWarning });
+      setSuccess({ email: values.adminEmail });
       return;
     }
     if (result.field) {
@@ -83,13 +83,10 @@ export function CreateFranchiseForm() {
           <div>
             <p className="font-semibold text-emerald-800">Franchise created</p>
             <p className="mt-1 text-sm text-emerald-700">
-              {success.inviteSent
-                ? "An invite email with a password-setup link has been sent to the franchise admin."
-                : "The franchise was created, but the invite email could not be sent. You can resend it from the franchise detail page."}
+              The admin can sign in now at the login page with{" "}
+              <span className="font-semibold">{success.email}</span> and the password you set.
+              Share these credentials with them securely.
             </p>
-            {success.warning && (
-              <p className="mt-1 text-xs text-emerald-700/70">Detail: {success.warning}</p>
-            )}
             <div className="mt-4 flex gap-2">
               <Button
                 onClick={() => router.push("/dashboard/franchises")}
@@ -191,17 +188,41 @@ export function CreateFranchiseForm() {
       />
 
       <div className="border-t border-border pt-5">
-        <p className="mb-3 text-sm font-semibold text-brand-navy">Franchise Admin</p>
+        <p className="mb-1 text-sm font-semibold text-brand-navy">Franchise Admin</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Set the admin&apos;s sign-in credentials. They log in with this email and password —
+          no email invite is sent. You can change the password later from the franchise page.
+        </p>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Admin Name" error={errors.adminName?.message}>
             <Input placeholder="Ravi Kumar" {...register("adminName")} />
           </Field>
-          <Field label="Admin Email" error={errors.adminEmail?.message} hint="They'll get a setup link">
+          <Field label="Admin Email" error={errors.adminEmail?.message} hint="Used as their login username">
             <Input
               type="email"
               placeholder="mysore@rightassetsmanagement.com"
               {...register("adminEmail")}
             />
+          </Field>
+          <Field label="Password" error={errors.adminPassword?.message} hint="At least 8 characters">
+            <div className="relative">
+              <Input
+                type={showPw ? "text" : "password"}
+                placeholder="Set a password"
+                autoComplete="new-password"
+                className="pr-10"
+                {...register("adminPassword")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                tabIndex={-1}
+                aria-label={showPw ? "Hide password" : "Show password"}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </Field>
           <Field label="Contact Phone" error={errors.contactPhone?.message}>
             <Input placeholder="+91 98xxxxxxx" {...register("contactPhone")} />

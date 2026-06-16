@@ -1,7 +1,5 @@
 "use server";
 
-import { randomUUID } from "crypto";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,22 +7,15 @@ import { createClient } from "@/lib/supabase/server";
 import {
   createFranchiseSchema,
   updateFranchiseSchema,
+  setAdminPasswordSchema,
   type CreateFranchiseInput,
   type CreateFranchiseResult,
   type UpdateFranchiseInput,
   type UpdateFranchiseResult,
-  type ResendInviteResult,
+  type SetAdminPasswordResult,
   type FranchiseStatus,
   type SetStatusResult,
 } from "./schema";
-
-async function getOrigin() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3001";
-  const proto =
-    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
-}
 
 export async function createFranchise(
   input: CreateFranchiseInput
@@ -62,10 +53,12 @@ export async function createFranchise(
   }
 
   // 2. Create the Auth user FIRST so an orphan franchise is impossible.
+  //    The super admin sets the password directly — the admin signs in with it
+  //    (email + password), no email invite/verification step.
   const { data: createdUser, error: createErr } = await admin.auth.admin.createUser({
     email: data.adminEmail,
-    email_confirm: true, // admin-provisioned; they set their own password via the invite link
-    password: randomUUID() + randomUUID(), // placeholder, immediately replaced via invite
+    email_confirm: true, // admin-provisioned; account is ready to use immediately
+    password: data.adminPassword,
     user_metadata: { full_name: data.adminName },
   });
   if (createErr || !createdUser?.user) {
@@ -119,25 +112,8 @@ export async function createFranchise(
     };
   }
 
-  // 4. Send the password-setup email (best-effort: a delivery failure does NOT
-  //    roll back the franchise — the detail page offers "Resend invite").
-  let inviteSent = true;
-  let inviteWarning: string | undefined;
-  const redirectTo = `${await getOrigin()}/auth/callback?next=/set-password`;
-  const { error: inviteErr } = await ssr.auth.resetPasswordForEmail(data.adminEmail, {
-    redirectTo,
-  });
-  if (inviteErr) {
-    inviteSent = false;
-    inviteWarning = inviteErr.message;
-    console.error(
-      "[createFranchise] invite email failed (franchise still created):",
-      inviteErr
-    );
-  }
-
   revalidatePath("/dashboard/franchises");
-  return { ok: true, franchiseId: franchiseId as string, inviteSent, inviteWarning };
+  return { ok: true, franchiseId: franchiseId as string };
 }
 
 // Verify the caller is a logged-in super_admin. Returns the actor or an error.
@@ -194,25 +170,53 @@ export async function updateFranchise(
   return { ok: true, franchiseId: data.id };
 }
 
-// Re-send the password-setup email to a franchise's admin.
-export async function resendInvite(franchiseId: string): Promise<ResendInviteResult> {
-  const { ssr, actor, error: authErr } = await requireSuperAdmin();
+// Set/replace a franchise admin's password. SUPER ADMIN ONLY. The franchise
+// admin then signs in with their email + this password (no email round-trip).
+export async function setFranchiseAdminPassword(
+  franchiseId: string,
+  password: string
+): Promise<SetAdminPasswordResult> {
+  const parsed = setAdminPasswordSchema.safeParse({ franchiseId, password });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const { actor, error: authErr } = await requireSuperAdmin();
   if (!actor) return { ok: false, error: authErr ?? "Not authorized." };
 
   const admin = createAdminClient();
+
+  // The franchise admin's auth account — profile.id IS the auth user id.
   const { data: adminProfile } = await admin
     .from("profiles")
-    .select("email")
+    .select("id")
     .eq("franchise_id", franchiseId)
     .eq("role", "franchise_admin")
     .maybeSingle();
 
-  const email = adminProfile?.email;
-  if (!email) return { ok: false, error: "This franchise has no admin account to invite." };
+  const userId = adminProfile?.id as string | undefined;
+  if (!userId) return { ok: false, error: "This franchise has no admin account." };
 
-  const redirectTo = `${await getOrigin()}/auth/callback?next=/set-password`;
-  const { error } = await ssr.auth.resetPasswordForEmail(email, { redirectTo });
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password: parsed.data.password,
+  });
   if (error) return { ok: false, error: error.message };
+
+  // Best-effort audit — never block the password change on a logging hiccup.
+  try {
+    await admin.from("activity_logs").insert({
+      franchise_id: franchiseId,
+      actor_id: actor.id,
+      action: "admin_password_reset",
+      entity_type: "franchise",
+      entity_id: franchiseId,
+      details: {},
+    });
+  } catch {
+    /* non-fatal */
+  }
+
+  revalidatePath(`/dashboard/franchises/${franchiseId}`);
   return { ok: true };
 }
 

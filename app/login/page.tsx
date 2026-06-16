@@ -193,8 +193,8 @@ function LoginForm() {
 
         {showForgot && (
           <p className="rounded-xl bg-muted/50 px-3.5 py-2.5 text-xs leading-relaxed text-muted-foreground">
-            Accounts are provisioned by Head Office. Contact your super admin to receive a new
-            set-password link.
+            Accounts are provisioned by Head Office. Contact your super admin to reset your
+            password.
           </p>
         )}
 

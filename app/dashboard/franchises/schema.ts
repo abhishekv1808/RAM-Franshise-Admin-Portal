@@ -19,13 +19,14 @@ export const createFranchiseSchema = z.object({
     .max(100, "Max 100"),
   adminEmail: z.string().trim().email("Enter a valid email"),
   adminName: z.string().trim().min(2, "Admin name is required"),
+  adminPassword: z.string().min(8, "Password must be at least 8 characters"),
   contactPhone: z.string().trim().min(7, "Enter a valid phone number"),
 });
 
 export type CreateFranchiseInput = z.infer<typeof createFranchiseSchema>;
 
 export type CreateFranchiseResult =
-  | { ok: true; franchiseId: string; inviteSent: boolean; inviteWarning?: string }
+  | { ok: true; franchiseId: string }
   | { ok: false; error: string; field?: keyof CreateFranchiseInput };
 
 // Editable franchise fields (code is immutable — it appears in invoice numbers;
@@ -55,7 +56,13 @@ export type UpdateFranchiseResult =
   | { ok: true; franchiseId: string }
   | { ok: false; error: string; field?: keyof UpdateFranchiseInput };
 
-export type ResendInviteResult = { ok: true } | { ok: false; error: string };
+// Super admin sets/changes a franchise admin's password directly.
+export const setAdminPasswordSchema = z.object({
+  franchiseId: z.string().uuid(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export type SetAdminPasswordResult = { ok: true } | { ok: false; error: string };
 
 export type FranchiseStatus = "active" | "suspended";
 

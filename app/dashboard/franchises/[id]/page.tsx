@@ -45,10 +45,10 @@ export default async function FranchiseDetailPage({
     .limit(8);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-8">
+    <div className="mx-auto w-full max-w-[1400px] px-6 py-7 lg:px-8">
       <Link
         href="/dashboard/franchises"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-brand-navy"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-navy"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to franchises
